@@ -1,5 +1,4 @@
 import SoundFile
-import multiprocessing
 
 # Dictionary morse code -> clear text
 CLEARTEXT_TO_MORSE = {'A': '.-',
