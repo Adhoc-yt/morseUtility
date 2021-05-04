@@ -1,6 +1,5 @@
 import pyaudio
 import wave
-import numpy as np
 from matplotlib import pyplot as plt
 from scipy import signal
 from scipy.io import wavfile
@@ -50,9 +49,12 @@ class SoundFile:
         sample_rate, samples = wavfile.read(self.filename)
         frequencies, times, spectrogram = signal.spectrogram(samples, sample_rate)
 
-        plt.subplots_adjust(bottom=0, left=0, top=1, right=1)
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+        plt.rcParams['figure.dpi'] = 600
         plt.pcolormesh(times, frequencies, spectrogram)
         plt.imshow(spectrogram)
         plt.ylabel('Frequency [Hz]')
         plt.xlabel('Time [sec]')
+        plt.savefig(self.filename + ".png")
         plt.show()

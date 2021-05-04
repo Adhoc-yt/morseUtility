@@ -1,4 +1,5 @@
 import SoundFile
+import multiprocessing
 
 # Dictionary morse code -> clear text
 CLEARTEXT_TO_MORSE = {'A': '.-',
@@ -129,10 +130,11 @@ def morse_to_sound(morse):
 
 
 if __name__ == '__main__':
+
     message = input("Message: ")
     # if morse code then morse_to_cleartext
-    if all(c in '.- /' for c in message):
-        print(morse_to_cleartext(message.replace('/', ' ')))
+    if all(c in '.- /−·' for c in message):
+        print(morse_to_cleartext(message.replace('/', ' ').replace('−', '-').replace('·', '.')))
     else:
         morsecode = cleartext_to_morse(message.upper())
         print(morsecode)

@@ -7,6 +7,7 @@ So far, here's what it does:
 - Translate clear text to Morse code
 - Translate Morse code (with either 3 spaces or slashes) to clear text
 - Generate Morse code sound (saves to file and play sound)
+- Displays frequency spectrum
 
 ### Dependencies
 ```
