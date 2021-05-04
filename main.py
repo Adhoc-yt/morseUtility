@@ -1,3 +1,5 @@
+import SoundFile
+
 # Dictionary morse code -> clear text
 CLEARTEXT_TO_MORSE = {'A': '.-',
                       'B': '-...',
@@ -45,11 +47,7 @@ CLEARTEXT_TO_MORSE = {'A': '.-',
                       ' ': ' '}
 # Reverse dictionary
 MORSE_TO_CLEARTEXT = {value: key for key, value in CLEARTEXT_TO_MORSE.items()}
-
-# Speed of sound output
 WPM = 20
-SOUND_VOLUME = 0.5  # [0.0, 1.0]
-CHUNK = 1024
 
 
 def yes_no(question):
@@ -94,7 +92,7 @@ def morse_to_sound(morse):
                     channels=1,
                     rate=fs,
                     output=True,
-                    frames_per_buffer=CHUNK)
+                    frames_per_buffer=1024)
     sample_dot = (np.sin(2 * np.pi * np.arange(fs * duration_dot) * f / fs)).astype(np.float32)
     sample_dash = (np.sin(2 * np.pi * np.arange(fs * duration_dash) * f / fs)).astype(np.float32)
     sample_gap = (np.sin(2 * np.pi * np.arange(fs * duration_gap) * 0 / fs)).astype(np.float32)
@@ -119,41 +117,15 @@ def morse_to_sound(morse):
         filename = input("Filename (*.wav): ")
         if not filename.endswith(".wav"):
             filename = filename + ".wav"
-        save_wav_file(filename, p.get_sample_size(pyaudio.paFloat32), fs, frames)
+        SoundFile.SoundFile.save_wav_file(filename, p.get_sample_size(pyaudio.paFloat32), fs, frames)
         if yes_no("Play '" + filename + "'?"):
-            play_wav_file(filename)
+            SoundFile.SoundFile(filename).play()
     elif yes_no("Play sound?"):
         filename = input("Filename: ")
-        play_wav_file(filename)
-
-
-def save_wav_file(filename, sample_width, rate, frames):
-    import wave
-    wf = wave.open(filename, 'wb')
-    wf.setnchannels(1)
-    wf.setsampwidth(sample_width)
-    wf.setframerate(rate)
-    wf.writeframes(b''.join(frames))
-    wf.close()
-
-
-def play_wav_file(filename):
-    import wave
-    import pyaudio
-    wf = wave.open(filename, 'rb')
-    p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                    channels=wf.getnchannels(),
-                    rate=wf.getframerate(),
-                    output=True)
-
-    frames = wf.readframes(CHUNK)
-    while frames != b'':
-        stream.write(frames)
-        frames = wf.readframes(CHUNK)
-
-    stream.close()
-    p.terminate()
+        SoundFile.SoundFile(filename).play()
+    if yes_no("Display Spectrum?"):
+        filename = input("Filename: ")
+        SoundFile.SoundFile(filename).get_frequency_spectrum()
 
 
 if __name__ == '__main__':

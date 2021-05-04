@@ -12,6 +12,8 @@ So far, here's what it does:
 ```
 pip install numpy
 pip install pyaudio
+pip install matplotlib
+pip install scipy
 ```
 
 ### Example inputs
