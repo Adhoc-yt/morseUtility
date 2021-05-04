@@ -1,5 +1,3 @@
-# Morse code to text + text to morse code
-
 # Dictionary morse code -> clear text
 CLEARTEXT_TO_MORSE = {'A': '.-',
                       'B': '-...',
@@ -48,9 +46,8 @@ CLEARTEXT_TO_MORSE = {'A': '.-',
 # Reverse dictionary
 MORSE_TO_CLEARTEXT = {value: key for key, value in CLEARTEXT_TO_MORSE.items()}
 
-DURATION_DOT = 1
-DURATION_DASH = 3 * DURATION_DOT
-DURATION_GAP = DURATION_DOT
+# Speed of sound output
+WPM = 4
 
 
 def cleartext_to_morse(cleartext):
@@ -62,55 +59,65 @@ def cleartext_to_morse(cleartext):
 
 
 def morse_to_cleartext(morse):
-    return ''.join([MORSE_TO_CLEARTEXT[c] for c in morse.split(' ') if c != ''])
+    cleartext = ''
+    for word in morse.split('   '):
+        for c in word.split(' '):
+            if c in MORSE_TO_CLEARTEXT.keys():
+                cleartext += MORSE_TO_CLEARTEXT[c]
+        cleartext += ' '
+    return cleartext.lower().capitalize()
 
 
 def morse_to_sound(morse):
-    import time
-    for c in morse:
-        if c is '.':
-            play_sound(DURATION_DOT)
-        elif c is '-':
-            play_sound(DURATION_DASH)
-        else:
-            # Play silence to separate characters
-            play_silence()
-
-
-def play_sound(duration):
-    # https://github.com/faturita/python-toolbox/blob/master/PlaySound.py
     import pyaudio
     import numpy as np
 
     p = pyaudio.PyAudio()
+    volume = 0.5  # [0.0, 1.0]
+    fs = 44100  # sampling rate, Hz, int
+    f = 600.0  # sine frequency, Hz, float
+    duration_dot = 1 * WPM/10
+    duration_dash = 3 * duration_dot
+    duration_gap = 1 * duration_dot
 
-    volume = 0.5  # range [0.0, 1.0]
-    fs = 44100  # sampling rate, Hz, must be integer
-    f = 550.0  # sine frequency, Hz, may be float
-
-    samples = (np.sin(2 * np.pi * np.arange(fs * duration) * f / fs)).astype(np.float32)
     stream = p.open(format=pyaudio.paFloat32,
                     channels=1,
                     rate=fs,
                     output=True)
+    sample_dot = (np.sin(2 * np.pi * np.arange(fs * duration_dot) * f / fs)).astype(np.float32)
+    sample_dash = (np.sin(2 * np.pi * np.arange(fs * duration_dash) * f / fs)).astype(np.float32)
+    sample_gap = (np.sin(2 * np.pi * np.arange(fs * duration_gap) * 0 / fs)).astype(np.float32)
+    sample_space = (np.sin(2 * np.pi * np.arange(fs * duration_dash) * 0 / fs)).astype(np.float32)
 
-    stream.write(volume * samples)
+    samples = []
+    for c in morse:
+        if c is '.':
+            samples.append(sample_dot)
+            samples.append(sample_gap)
+        elif c is '-':
+            samples.append(sample_dash)
+            samples.append(sample_gap)
+        else:
+            samples.append(sample_space)
+
+    for sample in samples:
+        stream.write(volume * sample)
+
     stream.stop_stream()
     stream.close()
-
     p.terminate()
 
 
 def play_silence():
     import time
-    time.sleep(DURATION_GAP)
+    time.sleep(duration_gap)
 
 
 if __name__ == '__main__':
     message = input("Message: ")
     # if morse code then morse_to_cleartext
-    if all(c in '.- ' for c in message):
-        print(morse_to_cleartext(message))
+    if all(c in '.- /' for c in message):
+        print(morse_to_cleartext(message.replace('/', ' ')))
     else:
         morsecode = cleartext_to_morse(message.upper())
         print(morsecode)
