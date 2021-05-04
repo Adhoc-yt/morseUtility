@@ -47,7 +47,18 @@ CLEARTEXT_TO_MORSE = {'A': '.-',
 MORSE_TO_CLEARTEXT = {value: key for key, value in CLEARTEXT_TO_MORSE.items()}
 
 # Speed of sound output
-WPM = 4
+WPM = 20
+SOUND_VOLUME = 0.5  # [0.0, 1.0]
+CHUNK = 1024
+
+
+def yes_no(question):
+    while "Invalid answer":
+        reply = str(input(question+' (y/n): ')).lower().strip()
+        if reply[:1] == 'y':
+            return True
+        if reply[:1] == 'n':
+            return False
 
 
 def cleartext_to_morse(cleartext):
@@ -73,44 +84,76 @@ def morse_to_sound(morse):
     import numpy as np
 
     p = pyaudio.PyAudio()
-    volume = 0.5  # [0.0, 1.0]
     fs = 44100  # sampling rate, Hz, int
     f = 600.0  # sine frequency, Hz, float
-    duration_dot = 1 * WPM/10
+    duration_dot = 12 / (10 * WPM)  # 20 words per minute = 60 ms
     duration_dash = 3 * duration_dot
     duration_gap = 1 * duration_dot
 
     stream = p.open(format=pyaudio.paFloat32,
                     channels=1,
                     rate=fs,
-                    output=True)
+                    output=True,
+                    frames_per_buffer=CHUNK)
     sample_dot = (np.sin(2 * np.pi * np.arange(fs * duration_dot) * f / fs)).astype(np.float32)
     sample_dash = (np.sin(2 * np.pi * np.arange(fs * duration_dash) * f / fs)).astype(np.float32)
     sample_gap = (np.sin(2 * np.pi * np.arange(fs * duration_gap) * 0 / fs)).astype(np.float32)
     sample_space = (np.sin(2 * np.pi * np.arange(fs * duration_dash) * 0 / fs)).astype(np.float32)
 
-    samples = []
+    frames = []
     for c in morse:
         if c is '.':
-            samples.append(sample_dot)
-            samples.append(sample_gap)
+            frames.append(sample_dot)
+            frames.append(sample_gap)
         elif c is '-':
-            samples.append(sample_dash)
-            samples.append(sample_gap)
+            frames.append(sample_dash)
+            frames.append(sample_gap)
         else:
-            samples.append(sample_space)
-
-    for sample in samples:
-        stream.write(volume * sample)
+            frames.append(sample_space)
 
     stream.stop_stream()
     stream.close()
     p.terminate()
 
+    if yes_no("Save sound?"):
+        filename = input("Filename (*.wav): ")
+        if not filename.endswith(".wav"):
+            filename = filename + ".wav"
+        save_wav_file(filename, p.get_sample_size(pyaudio.paFloat32), fs, frames)
+        if yes_no("Play '" + filename + "'?"):
+            play_wav_file(filename)
+    elif yes_no("Play sound?"):
+        filename = input("Filename: ")
+        play_wav_file(filename)
 
-def play_silence():
-    import time
-    time.sleep(duration_gap)
+
+def save_wav_file(filename, sample_width, rate, frames):
+    import wave
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(1)
+    wf.setsampwidth(sample_width)
+    wf.setframerate(rate)
+    wf.writeframes(b''.join(frames))
+    wf.close()
+
+
+def play_wav_file(filename):
+    import wave
+    import pyaudio
+    wf = wave.open(filename, 'rb')
+    p = pyaudio.PyAudio()
+    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                    channels=wf.getnchannels(),
+                    rate=wf.getframerate(),
+                    output=True)
+
+    frames = wf.readframes(CHUNK)
+    while frames != b'':
+        stream.write(frames)
+        frames = wf.readframes(CHUNK)
+
+    stream.close()
+    p.terminate()
 
 
 if __name__ == '__main__':
