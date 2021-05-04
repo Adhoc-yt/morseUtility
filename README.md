@@ -6,7 +6,7 @@ Ongoing project discussed and streamed on https://twitch.tv/adhoc_yt
 So far, here's what it does:
 - Translate clear text to Morse code
 - Translate Morse code (with either 3 spaces or slashes) to clear text
-- Generate Morse code sound (only plays it, not yet saving to file)
+- Generate Morse code sound (saves to file and play sound)
 
 ### Dependencies
 ```
